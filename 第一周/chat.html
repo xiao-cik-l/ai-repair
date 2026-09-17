@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>宿舍维修 AI 问答</title>
+<style>
+  body { font-family: "Microsoft YaHei", sans-serif; max-width: 640px; margin: 40px auto; padding: 0 20px; }
+  h2 { color: #333; }
+  #chat { border: 1px solid #ddd; border-radius: 8px; padding: 16px; min-height: 200px; margin-bottom: 12px; background: #fafafa; }
+  .q { color: #185FA5; margin: 8px 0 2px; }
+  .a { color: #333; margin: 0 0 8px; padding-bottom: 8px; border-bottom: 1px dashed #ddd; }
+  input { width: 70%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+  button { padding: 8px 20px; border: none; border-radius: 6px; background: #185FA5; color: #fff; font-size: 14px; cursor: pointer; }
+  button:hover { background: #0C447C; }
+</style>
+</head>
+<body>
+<h2>宿舍维修 AI 助手</h2>
+<div id="chat"></div>
+<input id="q" placeholder="输入维修问题，如：空调不制冷怎么办" onkeydown="if(event.key==='Enter')send()">
+<button onclick="send()">发送</button>
+
+<script>
+async function send() {
+  const input = document.getElementById('q');
+  const q = input.value.trim();
+  if (!q) return;
+  const box = document.getElementById('chat');
+  box.innerHTML += '<p class="q">问：' + q + '</p>';
+  input.value = '';
+
+  try {
+    const r = await fetch('http://127.0.0.1:8000/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q })
+    });
+    const d = await r.json();
+    box.innerHTML += '<p class="a">答：' + d.answer + '</p>';
+  } catch (e) {
+    box.innerHTML += '<p class="a">答：请求失败（后端没启动？检查 chat_注释版.py 是否在运行）</p>';
+  }
+}
+</script>
+</body>
+</html>
