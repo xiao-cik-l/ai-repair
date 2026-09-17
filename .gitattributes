@@ -1,0 +1,9 @@
+# 二进制文件：明确标记，禁止 Git 尝试文本转换与行尾转换
+*.docx  binary
+*.xlsx  binary
+*.xls   binary
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.zip   binary
