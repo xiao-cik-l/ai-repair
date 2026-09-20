@@ -1,5 +1,10 @@
 import sys,os,json
-sys.path.insert(0,os.path.join(os.path.dirname(__file__),"..","第一周"))
+# 跨目录导入：本文件在 05_整合入口/，其余四个功能目录都要挂进 sys.path，
+# 这样在任意目录下运行都能 import 到 分类 / 问答 / 建单 / 公共模块 里的代码
+_ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # 项目根目录
+for _d in ("01_公共模块","02_报修分类","03_知识库问答","04_自动建单"):
+    sys.path.insert(0,os.path.join(_ROOT,_d))
+
 from classifier import classify_repair
 from rag_qa import rag_answer
 from tools import tools,create_work_order,check_workers_available

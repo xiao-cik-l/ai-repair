@@ -11,15 +11,19 @@ RAG 三步流水线（背这个锚）：
     ② 拼Prompt → 全程序唯一的新代码（join 拼资料 + 格式化问题）
     ③ 回答  → 抄 7/31 qwen_client.py 的一行调用
 
-运行方式（必须在 ai-repair 目录下跑）：
-    D:/py/python.exe rag_qa_注释版.py
-    注意：from faq_kb import ... 是相对当前目录找文件，别在别的目录跑
+运行方式（本文件在 03_知识库问答/，路径已在下面自动挂好，任意目录下都能跑）：
+    D:/py/python.exe 03_知识库问答/rag_qa_注释版.py
+    注意：from faq_kb import ... 找的是同目录的 faq_kb.py，所以这两个文件必须待在一起
 """
 
 # ============================================================
 # 准备工作：复用（import 不会触发存数据，faq_kb 的 main 被保护在
 # if __name__ == "__main__" 里，import 只加载配置和函数）
 # ============================================================
+import os, sys  # 跨目录导入：faq_kb 就在本目录，qwen_client 在 01_公共模块/
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根目录
+sys.path.insert(0, os.path.join(_ROOT, "01_公共模块"))
+
 import chromadb
 from faq_kb import DashscopeEmbedding, DB_DIR, COLLECTION_NAME   # 抄 8/12
 from qwen_client import call_qwen, get_response_text             # 抄 7/31

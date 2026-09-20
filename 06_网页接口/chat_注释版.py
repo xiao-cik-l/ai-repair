@@ -8,9 +8,9 @@
     宿舍维修系统（桌面 dorm_repair _code）后端就是 Flask，
     用 Flask 写，下周直接把路由挂进 app.py 就能并入正式系统。
 
-运行方式（必须在 ai-repair 目录下跑，否则 import 找不到 faq_kb）：
-    D:/py/python.exe chat_注释版.py
-    然后浏览器打开 chat.html
+运行方式（本文件在 06_网页接口/，路径已在下面自动挂好，任意目录下都能跑）：
+    D:/py/python.exe 06_网页接口/chat_注释版.py
+    然后浏览器打开同目录下的 chat.html
 
 核心只有 4 行（④ 行处），其余全是模板：
     request.get_json()  →  从请求里拿 JSON
@@ -18,6 +18,10 @@
     rag_answer(question) → 调你写的 RAG 函数
     jsonify(...)         → 把结果包成 JSON 返回
 """
+import os, sys  # 跨目录导入：rag_qa 在 03_知识库问答/，它又依赖 01_公共模块/ 的 qwen_client
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根目录
+sys.path[:0] = [os.path.join(_ROOT, d) for d in ("01_公共模块", "03_知识库问答")]
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from rag_qa import rag_answer   # 复用 8/13 写的 RAG 问答函数

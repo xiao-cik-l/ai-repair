@@ -5,6 +5,10 @@
 - 切片: FAQ 短文本无需切，以后喂长文档再考虑
 """
 
+import os, sys  # 跨目录导入：faq_kb 就在本目录，qwen_client 在 01_公共模块/
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根目录
+sys.path.insert(0, os.path.join(_ROOT, "01_公共模块"))
+
 import chromadb
 from faq_kb import DashscopeEmbedding,DB_DIR,COLLECTION_NAME
 from qwen_client import call_qwen,get_response_text

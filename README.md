@@ -12,7 +12,7 @@
 | **智能问答** | 基于维修 FAQ 知识库回答问题，**查不到就明说不知道** | RAG：向量检索 → 阈值过滤 → 拼 Prompt |
 | **自动建单** | 一句话自动创建工单并写入数据库 | Function Calling + Agent 主循环 |
 
-三个功能由 `第二周/ai_service.py` 的 `handle()` 统一入口按关键词分流：
+三个功能由 `05_整合入口/ai_service.py` 的 `handle()` 统一入口按关键词分流：
 - 含「修 / 坏 / 漏 / 堵 / 响 / 裂」→ 走报修流程（分类 → 建单）
 - 其他 → 走 RAG 问答
 
@@ -44,31 +44,43 @@ flowchart LR
 | ChromaDB | 向量数据库，存 FAQ 并做相似度检索 |
 | MySQL | 业务数据库，存工单 |
 | Flask | 网页问答接口 |
-| dashscope / openai SDK | 两套 SDK 并存：第一周用 dashscope 原生 SDK，第二周用 openai 兼容模式 |
+| dashscope / openai SDK | 两套 SDK 并存：`01_公共模块/qwen_client.py` 用 dashscope 原生 SDK，整合入口用 openai 兼容模式 |
 
-> **关于两套 SDK**：`qwen_client.py`（第一周）用 `dashscope.Generation`，第二周改用 `openai.OpenAI` 的兼容模式端点。这是演进过程留下的，不是设计缺陷 —— 兼容模式在写 Function Calling 时更顺手。
+> **关于两套 SDK**：`qwen_client.py` 用 `dashscope.Generation`，而 `agent_repair.py` / `ai_service.py` 改用 `openai.OpenAI` 的兼容模式端点。这是演进过程留下的，不是设计缺陷 —— 兼容模式在写 Function Calling 时更顺手。
+>
+> **关于目录编号**：`01_` ~ `06_` 只是**阅读顺序**，不代表依赖层级。目录按功能划分，跨目录的 `import` 已在各入口文件顶部用 `sys.path` 处理，因此**在任意目录下运行都能找到模块**。
 
 ## 目录结构
 
 ```
 ai-repair/
-├── chroma_db/                    # ChromaDB 持久化数据（FAQ 向量库）
-├── 第一周/                        # 报修分类 + RAG 问答
-│   ├── classifier.py             # ① 报修分类
+├── 01_公共模块/                  # 被其他模块复用的基础设施
+│   ├── qwen_client.py            # dashscope 调用封装（重试 / 指数退避 / 备用模型）
+│   └── prompt_templates.py       # Prompt 模板库
+├── 02_报修分类/                  # 功能①：报修文本 → 类别 + 紧急度
+│   ├── classifier.py             # classify_repair(text) → {category, urgent}
+│   └── day6_demo.py              # 早期演示：封装前 vs 封装后写法对比
+├── 03_知识库问答/                # 功能②：RAG 问答
+│   ├── faq_kb.py                 # 建库：20 条 FAQ 向量化后存入 ChromaDB
+│   ├── faq_kb_注释版.py           # 同上，逐行注释版（复习用）
+│   ├── rag_qa.py                 # rag_answer()：检索 → 阈值过滤 → 拼 Prompt
+│   ├── rag_qa_注释版.py           # 同上，逐行注释版（复习用）
 │   ├── embedding_demo.py         # Embedding 语义相似度对照实验
-│   ├── faq_kb.py                 # 知识库：20 条 FAQ 存入 ChromaDB
-│   ├── rag_qa.py                 # ② RAG 问答核心
-│   ├── chat_注释版.py             # Flask 接口 POST /api/chat
-│   ├── chat.html                 # 最简聊天框
-│   ├── qwen_client.py            # API 封装（重试 / 指数退避 / 备用模型）
-│   ├── prompt_templates.py       # Prompt 模板库
 │   └── 8.14调参记录.txt           # Top-K / 阈值调参结论
-└── 第二周/                        # Function Calling + Agent
-    ├── tools.py                  # ③ 工具定义（schema）+ 真实实现（写 MySQL）
-    ├── auto_order.py             # FC 单轮版示例
-    ├── agent_repair.py           # FC 主循环 + 守卫①（脚本版）
-    ├── ai_service.py             # 三合一入口 handle()，含两个守卫
-    └── agent_repair_注释版.py     # 主循环逐行注释版
+├── 04_自动建单/                  # 功能③：Function Calling + Agent
+│   ├── tools.py                  # 工具 schema + 真实实现（写 MySQL）
+│   ├── auto_order.py             # FC 单轮版示例
+│   ├── agent_repair.py           # FC 主循环 + 守卫①（不在岗拒单）
+│   └── agent_repair_注释版.py     # 主循环逐行注释版（复习用）
+├── 05_整合入口/
+│   └── ai_service.py             # handle()：关键词分流，两个守卫都在这里
+├── 06_网页接口/
+│   ├── chat_注释版.py             # Flask 接口 POST /api/chat
+│   └── chat.html                 # 最简聊天框
+├── chroma_db/                    # ChromaDB 持久化数据（可由 faq_kb.py 重新生成）
+├── 学习回顾.md                    # 概念 ↔ 代码位置对照表
+├── 项目技术总结.docx              # 三个 AI 功能的技术总结
+└── 周记 / 周记2                   # 学习进度记录
 ```
 
 ## 快速开始
@@ -116,15 +128,14 @@ CREATE TABLE repair_orders (
 );
 ```
 
-连接参数在 `第二周/tools.py` 的 `get_conn()` 里，按自己环境改（默认 `localhost:3306` / `root` / 库名 `cjl_505`）。
+连接参数在 `04_自动建单/tools.py` 的 `get_conn()` 里，按自己环境改（默认 `localhost:3306` / `root` / 库名 `cjl_505`）。
 
 ### 5. 初始化 FAQ 知识库
 
 只需跑一次，把 20 条维修 FAQ 向量化后存进 ChromaDB：
 
 ```bash
-cd 第一周
-python faq_kb.py
+python 03_知识库问答/faq_kb.py
 ```
 
 ### 6. 运行与验证
@@ -132,32 +143,28 @@ python faq_kb.py
 **三个功能分别单独验证：**
 
 ```bash
-cd 第一周
-python classifier.py      # ① 分类：5 条报修测试文本
-python rag_qa.py          # ② 问答：空调不制冷 / 洗衣机坏了
+python 02_报修分类/classifier.py        # ① 分类：5 条报修测试文本
+python 03_知识库问答/rag_qa.py          # ② 问答：空调不制冷 / 洗衣机坏了
 ```
 
 ```bash
-cd 第二周
-python auto_order.py      # ③ FC 单轮版：演示模型决定调工具 → 执行 → 汇总回答
-python agent_repair.py    # ③ FC 主循环版 + 守卫①
+python 04_自动建单/auto_order.py        # ③ FC 单轮版：模型决定调工具 → 执行 → 汇总回答
+python 04_自动建单/agent_repair.py      # ③ FC 主循环版 + 守卫①
 ```
 
 **整合入口（推荐）：**
 
 ```bash
-cd 第二周
-python ai_service.py      # 三合一：报修建单 + RAG 问答一次跑通
+python 05_整合入口/ai_service.py        # 三合一：报修建单 + RAG 问答一次跑通
 ```
 
 **网页问答：**
 
 ```bash
-cd 第一周
-python chat_注释版.py      # 起 Flask 服务，浏览器打开 chat.html 即可提问
+python 06_网页接口/chat_注释版.py        # 起 Flask 服务，浏览器打开 chat.html 即可提问
 ```
 
-> ⚠️ **命令必须在对应目录下执行**。第一周代码用 `import qwen_client` 这类同目录导入；第二周通过 `sys.path` 挂载第一周目录。跨目录运行会报 `ModuleNotFoundError`。
+> 以上命令都在**项目根目录**下执行即可。各入口文件顶部已用 `sys.path` 自动挂好依赖目录，不必 `cd` 进子目录，跨目录导入不会再报 `ModuleNotFoundError`。
 
 ## 效果示例
 

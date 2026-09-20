@@ -4,6 +4,10 @@ Day 6 演示：用封装好的 qwen_client 改造原来的报修分类脚本
 对比 Day 5 的原始写法 vs Day 6 的封装写法
 """
 
+import os, sys  # 跨目录导入：qwen_client 在 01_公共模块/
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根目录
+sys.path.insert(0, os.path.join(_ROOT, "01_公共模块"))
+
 from qwen_client import call_qwen, get_response_text
 import json
 

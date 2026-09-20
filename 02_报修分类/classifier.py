@@ -1,3 +1,7 @@
+import os, sys  # 跨目录导入：本文件在 02_报修分类/，而模型调用与 Prompt 模板在 01_公共模块/
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根目录
+sys.path.insert(0, os.path.join(_ROOT, "01_公共模块"))                # 挂上去，任意目录下运行都能 import
+
 from prompt_templates import build_with_preset
 from qwen_client import call_qwen,get_response_text
 import json
