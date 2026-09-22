@@ -9,8 +9,9 @@ client = OpenAI(
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
 )
 
-# ===== 1. 用户输入(测试两步联动:换 W002 试试) =====
-messages = [{"role": "user", "content": "505水管爆了，尽快安排维修，工人W001"}]
+# ===== 1. 用户输入(测试两步联动:换 WX002 试试) =====
+# 工号必须是 workers 表里真实存在的（WX001/WX002/WX003），否则守卫①会拒绝建单
+messages = [{"role": "user", "content": "505水管爆了，尽快安排维修，工人WX001"}]
 
 # ===== 2. 第一轮:模型决定要不要调工具 =====
 resp = client.chat.completions.create(

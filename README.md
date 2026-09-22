@@ -109,24 +109,72 @@ Key 从[阿里云百炼控制台](https://bailian.console.aliyun.com/)获取。
 
 ### 4. 初始化数据库
 
-建库 `cjl_505`，再建工单表（下面是按代码调用反推的最小字段集，已有表可跳过）：
+建库 `cjl_505`，再建三张表（**已有表可跳过**）。
+
+`students` 和 `workers` 是必须的 —— 它们被 `repair_orders` 的外键引用，缺任何一张，AI 建单都会写入失败：
 
 ```sql
 CREATE DATABASE IF NOT EXISTS cjl_505 DEFAULT CHARSET utf8mb4;
+USE cjl_505;
 
+-- 学生表：建单时带上报修人身份
+CREATE TABLE students (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  name          VARCHAR(50)  NOT NULL,
+  student_no    VARCHAR(20)  NOT NULL,
+  email         VARCHAR(100) NOT NULL,
+  password_hash VARCHAR(256) NOT NULL,
+  phone         VARCHAR(20),
+  created_at    DATETIME     NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 维修工表：守卫①查的就是这张表的 worker_no
+CREATE TABLE workers (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  name          VARCHAR(50)  NOT NULL,
+  email         VARCHAR(100) NOT NULL,
+  password_hash VARCHAR(256) NOT NULL,
+  worker_no     VARCHAR(20)  NOT NULL,
+  phone         VARCHAR(20),
+  created_at    DATETIME     NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 工单表：字段按真实表结构给出，status 流转 pending_review→approved→accepted→finished
 CREATE TABLE repair_orders (
   id            INT AUTO_INCREMENT PRIMARY KEY,
-  student_id    INT NOT NULL,
-  student_no    VARCHAR(20),
-  dorm_building VARCHAR(20),
-  room_no       VARCHAR(10),
-  category      VARCHAR(20),
-  description   TEXT,
-  status        VARCHAR(20) DEFAULT 'pending_review',
-  worker_id     INT NULL,
-  created_at    DATETIME
-);
+  student_id    INT          NOT NULL,
+  student_no    VARCHAR(20)  NOT NULL,
+  worker_id     INT,
+  dorm_building VARCHAR(50)  NOT NULL,
+  room_no       VARCHAR(20)  NOT NULL,
+  category      VARCHAR(50)  NOT NULL,
+  description   TEXT         NOT NULL,
+  status        VARCHAR(30)  NOT NULL DEFAULT 'pending_review',
+  audit_note    TEXT,
+  result_note   TEXT,
+  result_image  VARCHAR(255),
+  created_at    DATETIME     NOT NULL,
+  reviewed_at   DATETIME,
+  accepted_at   DATETIME,
+  finished_at   DATETIME,
+  FOREIGN KEY (student_id) REFERENCES students(id),
+  FOREIGN KEY (worker_id)  REFERENCES workers(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
+
+**初始数据（必须插）**：`tools.py` 的 `create_work_order` 固定写 `student_id = 1`，所以 id=1 的学生必须存在，否则外键约束会让建单失败。
+
+```sql
+INSERT INTO students (id, name, student_no, email, password_hash, created_at)
+VALUES (1, '测试学生', 'js23150301', 'test@example.com', 'placeholder', NOW());
+
+INSERT INTO workers (id, name, email, password_hash, worker_no, created_at) VALUES
+  (1, '张维修', 'w1@example.com', 'placeholder', 'WX001', NOW()),
+  (2, '刘浩',   'w2@example.com', 'placeholder', 'WX002', NOW()),
+  (3, '王以',   'w3@example.com', 'placeholder', 'WX003', NOW());
+```
+
+> `password_hash` 填占位字符串即可，本项目不涉及登录功能。若同时运行宿舍维修 Web 系统，它用的是**同一个库、同一张 `repair_orders`**（完整建表脚本还含 `admins` / `email_codes` 两张表），密码哈希由它启动时生成。
 
 连接参数在 `04_自动建单/tools.py` 的 `get_conn()` 里，按自己环境改（默认 `localhost:3306` / `root` / 库名 `cjl_505`）。
 
@@ -168,19 +216,25 @@ python 06_网页接口/chat_注释版.py        # 起 Flask 服务，浏览器�
 
 ## 效果示例
 
-`python ai_service.py` 的典型输出：
+`python 05_整合入口/ai_service.py` 的典型输出 —— 四种情况一次走完（模型措辞会有出入，逻辑一致）：
 
 ```
 用户:505水管爆了，尽快安排维修
 系统分类: {'category': '水管', 'urgent': '是'}
-系统：已为您创建工单（工单号 12），问题：505 房间水管爆裂，优先级 high，当前状态 pending_review，请等待审核。
+系统：已为您创建工单（工单号 18），问题：505 房间水管爆裂，优先级 high，当前状态 pending_review，请等待审核。
+
+用户:505水管爆了，派工人WX999来修
+系统分类: {'category': '水管', 'urgent': '是'}
+系统：工号 WX999 不存在，无法派单，请确认正确的维修工工号。
 
 用户:空调不制冷怎么办
-系统：请先检查空调滤网是否积灰，若清理后仍不制冷，可能是缺氟或压缩机故障，建议报修处理。
+系统：请先检查遥控器是否调到制冷模式、温度是否低于室温；若正常请报修，空调加氟或清洗滤网由维修师傅处理。
 
-用户:洗衣机坏了，怎么修
-系统：抱歉，资料里没有关于洗衣机维修的相关信息，我无法回答。
+用户:宿舍晚上几点关门
+系统：抱歉，资料里没有相关信息，我无法回答。
 ```
+
+四段分别对应：**分流到报修 + 正常建单** / **守卫①拒绝无效工号** / **RAG 命中知识库** / **RAG 反幻觉兜底**。
 
 最后一条是 RAG 的**反幻觉设计**：知识库里没有的内容，系统会承认不知道，而不是编一个答案。
 
@@ -198,16 +252,21 @@ ChromaDB 默认是欧氏距离，但文本相似度用余弦更合理 —— 向
 
 **3. 为什么业务规则要写死在代码里，不能交给 Prompt？**
 
-模型的输出是概率性的，Prompt 只能提高它遵守规则的概率，做不到 100%。所以「维修员不在岗不派单」「房间号缺失不建单」这类**绝不能出错**的规则，必须在工具执行前用代码拦截：
+模型的输出是概率性的，Prompt 只能提高它遵守规则的概率，做不到 100%。所以「维修员在岗才派单」「房间号缺失不建单」这类**绝不能出错**的规则，必须在工具执行前用代码拦截（`05_整合入口/ai_service.py`）：
 
 ```python
 if not worker_available:
     result = {"error": "维修员不在岗,按规则拒绝建单,请更换维修员"}
-elif not str(func_args.get("room", "")).strip():
+elif not str(func_args.get("room", "")).strip() or func_args.get("room") in ("未知", "unknown", "无", "null"):
     result = {"error": "房间号缺失,请先询问用户房间号后再建单"}
 else:
     result = create_work_order(**func_args)
 ```
+
+其中 `worker_available` 不是凭空来的，它由 `check_workers_available()` **真查数据库**得出，规则两条：
+
+1. 工号必须存在于 `workers` 表（查 `worker_no`）
+2. 该维修工手上不能有 `approved` / `accepted` 状态的未完工工单
 
 之所以拦得住，是因为**模型没有执行能力** —— 它只能「请求」调用工具，真正的执行权在代码手里。这是 Function Calling 架构比纯 Prompt 可靠的根本原因。
 
@@ -233,4 +292,6 @@ else:
 - **没有会话记忆**：每轮请求独立，模型不记得上一句话。多轮追问要靠用户重新说清上下文。
 - **没有上下文截断**：一旦加上记忆，长对话会超出 context window，需要截断策略。
 - **分类靠关键词分流**：`handle()` 用「修/坏/漏/堵/响/裂」判断是否走报修流程，遇到不含这些字的报修（如「空调不工作」）会误判成问答。更稳的做法是意图分类。
+- **守卫①依赖模型主动查岗**：`worker_available` 默认 `True`，只有模型先调用 `check_workers_available` 并拿到「不可用」，它才会变成 `False`。**若模型跳过查岗直接建单，守卫①就不生效。** 更可靠的做法是不依赖模型记得调用，而是由代码在建单前无条件校验（把校验挪进工具执行路径）。这一点在设计上尚未做到 —— 相比之下守卫②是无条件生效的。
+- **建单身份是写死的**：`create_work_order` 固定 `student_id = 1` / `student_no = js23150301` / `dorm_building = 1号楼`，所以 AI 建的单都挂在「测试学生」名下。要真正多用户，这几个值应从会话中取，作为工具参数传入。
 - **未部署**：目前只能在本地跑，没有 Docker 化。

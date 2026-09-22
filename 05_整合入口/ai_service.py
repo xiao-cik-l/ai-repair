@@ -28,6 +28,9 @@ def handle(user_input):
             {"role":"user","content":user_input},
         ]
 
+        # 守卫①的标志位。注意：它默认 True，只有模型先调了 check_workers_available
+        # 并返回 available=False，才会被改成 False —— 也就是说守卫①依赖模型主动查岗。
+        # 若模型跳过查岗直接建单，守卫①不生效（这是当前设计的薄弱点，见 README「已知局限」）。
         worker_available = True  # 默认允许建单;查到不在岗后改为 False
 
 
@@ -104,6 +107,7 @@ if __name__ =="__main__":
         "505水管爆了，尽快安排维修",      # 报修 → 分类 → 建单
         "空调不制冷怎么办",               # 提问 → RAG 问答
         "厕所堵了三天了",                 # 报修
+        "505水管爆了，派工人WX999来修",   # 工号不存在 → 守卫①拒绝建单
     ]
 
     for t in tests:
