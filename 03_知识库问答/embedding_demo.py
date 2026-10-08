@@ -21,7 +21,7 @@ from dashscope import TextEmbedding
 # 第一部分：基础配置（和 qwen_client.py 同一套 API Key）
 # ============================================================
 
-# 优先从环境变量读取，没有就兜底（正式项目不要硬编码 Key）
+# 只从环境变量读取，不设兜底值（避免密钥进代码）；缺失时为 None，调用 API 时才报错
 DASHSCOPE_API_KEY = os.environ.get(
     "DASHSCOPE_API_KEY",
 )

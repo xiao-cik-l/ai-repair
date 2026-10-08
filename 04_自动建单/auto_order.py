@@ -4,7 +4,7 @@ import os
 from openai import OpenAI
 
 client = OpenAI(
-    # 优先读环境变量；没设时用下面的 key 兜底（建议之后改用环境变量，别把 key 写死在代码里）
+    # 只从环境变量读取，不设兜底值（避免密钥进代码）；缺失时为 None，调用 API 才报错
     api_key=os.getenv("DASHSCOPE_API_KEY"),
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
 )

@@ -29,8 +29,9 @@ from dashscope import TextEmbedding  # 从 SDK 里单独取出"文本向量化"�
 # 第一部分：基础配置（API Key 与 embedding_demo.py 同一套）
 # ============================================================
 
-# 读 API Key：优先读环境变量 DASHSCOPE_API_KEY，读不到就用后面这串默认值兜底。
-# 这样做的意义：Key 只写在一处，多个脚本共用，以后换 Key 只改这里（或改环境变量）。
+# 读 API Key：只从环境变量 DASHSCOPE_API_KEY 读取，不设兜底值（避免密钥进代码）。
+# 用 .get() 时读不到会返回 None（不立即报错），要等调用 API 才暴露。
+# 这样做的意义：Key 只写在一处，多个脚本共用，以后换 Key 只改环境变量。
 DASHSCOPE_API_KEY = os.environ.get(
     "DASHSCOPE_API_KEY",
 )

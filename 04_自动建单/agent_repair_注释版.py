@@ -13,7 +13,7 @@ import os
 from openai import OpenAI
 
 # ---- 创建客户端:OpenAI 兼容模式,连阿里云百炼 ----
-# os.getenv 优先读环境变量;没设时用后面的 key 兜底(建议改成环境变量,别把 key 写死在代码里)
+# os.getenv 只从环境变量读取,不设兜底值(避免密钥进代码);缺失时返回 None,调用 API 时才报错
 client = OpenAI(
     api_key=os.getenv("DASHSCOPE_API_KEY"),
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"

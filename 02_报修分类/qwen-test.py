@@ -1,7 +1,7 @@
 """
-Day 6 演示：用封装好的 qwen_client 改造原来的报修分类脚本
+演示：用封装好的 qwen_client 改造报修分类脚本
 ===========================================================
-对比 Day 5 的原始写法 vs Day 6 的封装写法
+对比「直接调 dashscope SDK 的原始写法」vs「用 qwen_client 封装后的写法」
 """
 
 import os, sys  # 跨目录导入：qwen_client 在 01_公共模块/
@@ -21,7 +21,7 @@ urgent：是否紧急（是/否）
 报修描述：{user_input}
 """
 
-prompt = template.format(user_input="厕所管道不下水了，已经三天了")
+prompt = template.format(user_input="宿舍的墙皮脱落，差点砸到人了，请尽快处理。")
 
 # ★ 这是核心：一行调用，所有错误处理都在 qwen_client 里了
 response = call_qwen(

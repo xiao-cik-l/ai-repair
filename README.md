@@ -59,7 +59,7 @@ ai-repair/
 │   └── prompt_templates.py       # Prompt 模板库
 ├── 02_报修分类/                  # 功能①：报修文本 → 类别 + 紧急度
 │   ├── classifier.py             # classify_repair(text) → {category, urgent}
-│   └── day6_demo.py              # 早期演示：封装前 vs 封装后写法对比
+│   └── qwen-test.py              # 演示：封装前 vs 封装后写法对比
 ├── 03_知识库问答/                # 功能②：RAG 问答
 │   ├── faq_kb.py                 # 建库：20 条 FAQ 向量化后存入 ChromaDB
 │   ├── faq_kb_注释版.py           # 同上，逐行注释版（复习用）
@@ -98,7 +98,16 @@ pip install chromadb dashscope openai pymysql flask flask-cors
 
 ### 3. 配置 API Key
 
-代码通过环境变量读取密钥，**不写死在代码里**（缺失时直接抛 `KeyError`，不静默回退）：
+代码通过环境变量读取密钥，**不写死在代码里，也不设任何兜底值**（避免密钥进代码）。
+
+两种读法的差异，按实际情况分别说明：
+
+| 写法 | 缺失时的表现 |
+|---|---|
+| `os.environ["DASHSCOPE_API_KEY"]`（`ai_service.py`） | 立即抛 `KeyError`，启动即暴露 |
+| `os.environ.get("DASHSCOPE_API_KEY")`（其余脚本） | 返回 `None`，不报错，直到调用 API 才失败 |
+
+两条路的共同点：**都不会回退到代码里的内置密钥**。
 
 ```bash
 # Windows（永久生效，之后需要重开终端）

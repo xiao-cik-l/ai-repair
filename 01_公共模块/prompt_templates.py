@@ -1,7 +1,7 @@
 """
-Prompt 可配置模板系统（Day 10 学习产出）
+Prompt 可配置模板系统
 ==========================================
-将 Day 3-8 中硬编码的 Prompt 全部抽成可配置模板。
+把原先散落在各脚本里硬编码的 Prompt 全部抽成可配置模板。
 支持两种渲染方式：str.format()（内置，简单场景）和 Jinja2（需安装，复杂场景）。
 
 使用方式：
@@ -18,12 +18,12 @@ import json
 from functools import lru_cache
 
 # ============================================================
-# 第一部分：str.format() 模板（覆盖 Day 3-8 所有 Prompt）
+# 第一部分：str.format() 模板（覆盖全部 Prompt）
 # ============================================================
 
 PROMPT_TEMPLATES = {
 
-    # ---- Day 3：Prompt 工程五大场景 ----
+    # ---- Prompt 工程五大场景 ----
 
     "summarize": (
         "请用一句话总结以下用户评论的要点，限 {max_words} 字以内：\n\n"
@@ -56,7 +56,7 @@ PROMPT_TEMPLATES = {
         "不知道的就说'{fallback_msg}'。不要编造信息。"
     ),
 
-    # ---- Day 6/7：智能报修分类 ----
+    # ---- 智能报修分类 ----
 
     "repair_classify": (
         "请将以下报修描述分类，以json格式输出"
@@ -81,7 +81,7 @@ PROMPT_TEMPLATES = {
         "报修描述：{user_input}"
     ),
 
-    # ---- Day 8：JSON 结构化输出三层约束 ----
+    # ---- JSON 结构化输出三层约束 ----
 
     # Level 1：基础格式约束
     "json_level1": (
