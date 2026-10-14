@@ -58,11 +58,29 @@ PROMPT_TEMPLATES = {
 
     # ---- 智能报修分类 ----
 
+    # 报修分类：光给类别名字不够，必须给「边界」和「兜底」，
+    # 否则模型会把墙皮、天花板这类房屋本体硬塞进门窗/水管里。
+    # urgent 也要给可判定的客观条件，否则同一句话两次问会得到不同答案。
     "repair_classify": (
-        "请将以下报修描述分类，以json格式输出"
-        "（直接输出json，不要markdown代码块），包含：\n"
-        "category：维修类别（{categories}）\n"
-        "urgent：是否紧急（是/否）\n"
+        "你是宿舍报修分类助手。请把报修描述归入一个类别，并判断紧急程度。\n"
+        "\n"
+        "# 类别（必须从 {categories} 中选且只选一个）\n"
+        "- 电器：空调、电灯、插座、开关、热水器、风扇、跳闸、线路\n"
+        "- 水管：水龙头、下水道、马桶、便池、漏水/渗水、堵塞、水压\n"
+        "- 门窗：门、门锁、门把手、窗户、纱窗、玻璃\n"
+        "- 家具：床、床板、书桌、椅子、衣柜、书架\n"
+        "- 其他：墙皮、墙面、天花板、地板、地面（以上四类都不是的）\n"
+        "\n"
+        "# 紧急判定（满足任一条件即为「是」，否则为「否」）\n"
+        "① 涉及电：漏电、冒烟、火花、焦糊味、反复跳闸\n"
+        "② 涉及水且正在漏或渗\n"
+        "③ 有坠落、倒塌、砸伤风险\n"
+        "④ 完全无法使用（门锁死、马桶堵死、床塌了）\n"
+        "⑤ 已持续 3 天以上仍未解决\n"
+        "\n"
+        "# 输出（只输出 JSON，不要 markdown 代码块，不要任何解释文字）\n"
+        "{{\"category\": \"水管\", \"urgent\": \"否\"}}\n"
+        "\n"
         "报修描述：{user_input}"
     ),
 
@@ -319,7 +337,7 @@ def render_prompt(template_name: str, _use_jinja: bool = False, **kwargs) -> str
 
 PRESETS = {
     "repair_classify": {
-        "categories": "电器/水管/门窗/家具",
+        "categories": "电器 / 水管 / 门窗 / 家具 / 其他",
     },
     "repair_classify_system": {
         "domain": "物业报修分类助手",
@@ -352,7 +370,7 @@ PRESETS = {
     "json_level3": {
         "schema": '{\n  "category": "",\n  "urgent": "",\n  "priority": "",\n  "description": ""\n}',
         "field_descriptions": (
-            "- category：维修类别，可选：电器/水管/门窗/家具\n"
+            "- category：维修类别，可选：电器/水管/门窗/家具/其他\n"
             "- urgent：是否紧急，是/否\n"
             "- priority：优先级，紧急/常规/低优先级\n"
             "- description：标准化工单描述，50字以内"

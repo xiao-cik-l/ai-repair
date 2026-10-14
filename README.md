@@ -59,7 +59,8 @@ ai-repair/
 │   └── prompt_templates.py       # Prompt 模板库
 ├── 02_报修分类/                  # 功能①：报修文本 → 类别 + 紧急度
 │   ├── classifier.py             # classify_repair(text) → {category, urgent}
-│   └── qwen-test.py              # 演示：封装前 vs 封装后写法对比
+│   ├── qwen-test.py              # 演示：封装前 vs 封装后写法对比
+│   └── 评测/                     # 分类准确率评测：24 条标注样本 + 评测脚本 + 前后成绩存档
 ├── 03_知识库问答/                # 功能②：RAG 问答
 │   ├── faq_kb.py                 # 建库：20 条 FAQ 向量化后存入 ChromaDB
 │   ├── faq_kb_注释版.py           # 同上，逐行注释版（复习用）

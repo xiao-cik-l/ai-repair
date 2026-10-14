@@ -56,7 +56,7 @@ def validate_params(temperature, top_p, seed):
 
 def call_qwen(prompt, system_prompt=None, model=None,
               temperature=None, top_p=None, seed=None,
-              max_tokens=None, max_retries=None):
+              max_tokens=None, max_retries=None, response_format=None):
     """
     带完整错误处理的通义千问调用函数。
 
@@ -69,6 +69,9 @@ def call_qwen(prompt, system_prompt=None, model=None,
     - seed:         选填，随机种子 >=0
     - max_tokens:   选填，限制输出长度，默认 2000
     - max_retries:  选填，最多重试次数，默认 3
+    - response_format: 选填，结构化输出开关。传 {"type": "json_object"}
+                   可让模型只返回合法 JSON（注意 prompt 里必须出现 "JSON" 字样）。
+                   默认 None = 不传这个参数给 API，行为与之前完全一致。
 
     返回：API 返回的完整 response 对象，或者 None（全失败时）
     """
@@ -104,6 +107,8 @@ def call_qwen(prompt, system_prompt=None, model=None,
         call_params["seed"] = seed
     if max_tokens is not None:
         call_params["max_tokens"] = max_tokens
+    if response_format is not None:
+        call_params["response_format"] = response_format
 
     # -------- 3. 带重试的调用逻辑 --------
     for attempt in range(1, max_retries + 1):
