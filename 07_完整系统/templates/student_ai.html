@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="toolbar">
+    <h2>AI 报修助手</h2>
+    <button class="button button-plain" onclick="resetChat()">清空对话</button>
+    <a class="button" href="{{ url_for('new_order') }}">手动填写表单</a>
+</div>
+
+<p class="ai-tip">
+    直接用一句话描述问题，例如「505 厕所堵了」或「空调不制冷怎么办」。<br>
+    说清故障会自动生成工单并进入管理员审核队列；问维修知识会直接回答，且支持连续追问。
+</p>
+
+<div id="chat" class="ai-chat"></div>
+
+<div class="ai-input-row">
+    <input id="q" type="text" placeholder="输入维修问题，如：505 水管爆了，请尽快安排维修"
+           onkeydown="if(event.key==='Enter')send()">
+    <button id="sendBtn" onclick="send()">发送</button>
+</div>
+
+<style>
+  .ai-tip { color: #555; font-size: 13px; line-height: 1.7; margin: 0 0 14px; }
+  .ai-chat {
+      border: 1px solid #ddd; border-radius: 8px; padding: 16px;
+      min-height: 220px; max-height: 420px; overflow-y: auto;
+      margin-bottom: 12px; background: #fafafa;
+  }
+  .ai-chat .q { color: #185FA5; margin: 10px 0 2px; }
+  .ai-chat .a { color: #333; margin: 0 0 10px; padding-bottom: 10px;
+                border-bottom: 1px dashed #ddd; white-space: pre-wrap; }
+  .ai-chat .err { color: #b42318; }
+  .ai-chat .typing::after {
+      content: "▍"; color: #185FA5; animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .ai-input-row { display: flex; gap: 10px; }
+  .ai-input-row input {
+      flex: 1; padding: 9px 12px; border: 1px solid #ccc;
+      border-radius: 6px; font-size: 14px;
+  }
+  .ai-input-row button {
+      padding: 9px 24px; border: none; border-radius: 6px;
+      background: #185FA5; color: #fff; font-size: 14px; cursor: pointer;
+  }
+  .ai-input-row button:hover { background: #0C447C; }
+  .ai-input-row button:disabled { background: #9aa7b4; cursor: not-allowed; }
+  .button-plain { background: #fff; color: #185FA5; border: 1px solid #185FA5; }
+</style>
+
+<script>
+const STREAM_URL = '{{ url_for("api_ai_chat_stream") }}';
+const JSON_URL   = '{{ url_for("api_ai_chat") }}';
+const RESET_URL  = '{{ url_for("api_ai_chat_reset") }}';
+
+async function send() {
+  const input = document.getElementById('q');
+  const btn = document.getElementById('sendBtn');
+  const box = document.getElementById('chat');
+  const q = input.value.trim();
+  if (!q || btn.disabled) return;
+
+  addLine('q', '问：' + q);
+  input.value = '';
+  btn.disabled = true;
+  btn.textContent = '思考中...';
+
+  // 先占位一行，收到第一块内容后替换掉
+  const answer = document.createElement('p');
+  answer.className = 'a typing';
+  answer.textContent = '答：';
+  box.appendChild(answer);
+  scroll(box);
+
+  try {
+    await streamAnswer(q, answer);
+  } catch (e) {
+    // 流式失败（浏览器不支持流 / 后端 302 到登录页 / 网络断）→ 退回普通接口
+    try {
+      const r = await fetch(JSON_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q })
+      });
+      const d = await r.json();
+      answer.className = 'a' + (d.ok ? '' : ' err');
+      answer.textContent = '答：' + d.answer;
+    } catch (e2) {
+      answer.className = 'a err';
+      answer.textContent = '答：请求失败（后端未启动，或登录态已失效，请刷新页面重试）';
+    }
+  } finally {
+    answer.classList.remove('typing');
+    btn.disabled = false;
+    btn.textContent = '发送';
+    scroll(box);
+  }
+}
+
+async function streamAnswer(question, node) {
+  const r = await fetch(STREAM_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question: question })
+  });
+
+  // 未登录时 login_required 会 302，fetch 跟随后拿到的是 HTML 页面
+  const type = r.headers.get('Content-Type') || '';
+  if (!r.ok || !type.includes('text/event-stream')) {
+    throw new Error('not a stream response: ' + r.status);
+  }
+
+  const reader = r.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buf = '';
+  let text = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+
+    let idx;
+    while ((idx = buf.indexOf('\n\n')) >= 0) {
+      const frame = buf.slice(0, idx);
+      buf = buf.slice(idx + 2);
+      const line = frame.split('\n').find(l => l.startsWith('data:'));
+      if (!line) continue;  // ": thinking" 这类注释帧跳过
+
+      let evt;
+      try { evt = JSON.parse(line.slice(5).trim()); } catch (_) { continue; }
+
+      if (evt.type === 'chunk') {
+        text += evt.text;
+        node.textContent = '答：' + text;
+        scroll(node.parentElement);
+      } else if (evt.type === 'done') {
+        text = evt.text;               // 以完整文本为准，防止分块边界丢字
+        node.textContent = '答：' + text;
+      } else if (evt.type === 'error') {
+        node.className = 'a err';
+        node.textContent = '答：' + evt.text;
+      }
+    }
+  }
+
+  if (!text) throw new Error('empty stream');
+}
+
+async function resetChat() {
+  try {
+    await fetch(RESET_URL, { method: 'POST' });
+  } catch (_) { /* 清空失败不影响继续聊 */ }
+  const box = document.getElementById('chat');
+  box.innerHTML = '';
+  addLine('a', '答：对话已清空，可以重新开始。');
+}
+
+function addLine(cls, text) {
+  const box = document.getElementById('chat');
+  const p = document.createElement('p');
+  p.className = cls;
+  p.textContent = text;
+  box.appendChild(p);
+  scroll(box);
+}
+
+function scroll(el) { el.scrollTop = el.scrollHeight; }
+</script>
+{% endblock %}

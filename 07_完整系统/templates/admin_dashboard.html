@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>管理端工单审核中心</h2>
+<p class="hint">管理员可审核学生提交的工单，并选择是否分配指定维修工。</p>
+
+{% if session.get('admin_no') == 'MX001' %}
+<div class="action-bar">
+    <a href="{{ url_for('admin_personnel') }}" class="btn-link">人员变动管理 &raquo;</a>
+</div>
+{% endif %}
+
+<table class="data-table wide">
+    <thead>
+        <tr>
+            <th>学号</th>
+            <th>学生</th>
+            <th>宿舍</th>
+            <th>类型</th>
+            <th>描述</th>
+            <th>状态</th>
+            <th>维修工</th>
+            <th>维修结果</th>
+            <th>维修图片</th>
+            <th>审核操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order in orders %}
+            <tr>
+                <td>{{ order.student_no }}</td>
+                <td>{{ order.student_name }}</td>
+                <td>{{ order.dorm_building }}-{{ order.room_no }}</td>
+                <td>{{ order.category }}</td>
+                <td>{{ order.description }}</td>
+                <td><span class="status">{{ order.status }}</span></td>
+                <td>{{ order.worker_name or '未指定' }}</td>
+                <td>{{ order.result_note or '-' }}</td>
+                <td>
+                    {% if order.result_image %}
+                        <div class="image-actions">
+                            <a href="{{ url_for('static', filename=order.result_image) }}" target="_blank">
+                                <img src="{{ url_for('static', filename=order.result_image) }}" alt="维修结果图片" class="result-thumb">
+                            </a>
+                            {% if session.role == 'admin' or (session.role == 'worker' and order.worker_id == session.user_id) %}
+                                <form action="{{ url_for('delete_order_image', order_id=order.id) }}" method="post" class="delete-image-form">
+                                    <button type="submit" class="btn-delete-image" onclick="return confirm('确定要删除这张图片吗？');">删除</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if order.status == 'pending_review' %}
+                        <form action="{{ url_for('approve_order', order_id=order.id) }}" method="post" class="mini-form">
+                            <select name="worker_id">
+                                <option value="">不指定维修工</option>
+                                {% for worker in workers %}
+                                    <option value="{{ worker.id }}">{{ worker.name }} / {{ worker.worker_no }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="text" name="audit_note" placeholder="审核意见" value="审核通过">
+                            <button type="submit">通过</button>
+                        </form>
+                        <form action="{{ url_for('reject_order', order_id=order.id) }}" method="post" class="mini-form">
+                            <input type="text" name="audit_note" placeholder="退回原因" value="信息不完整">
+                            <button type="submit" class="danger">退回</button>
+                        </form>
+                    {% else %}
+                        {{ order.audit_note or '-' }}
+                    {% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="10">暂无工单。</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>维修工接单中心</h2>
+<p class="hint">展示已通过审核的工单及您已完成的历史工单。</p>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>学号</th>
+            <th>学生</th>
+            <th>宿舍</th>
+            <th>类型</th>
+            <th>描述</th>
+            <th>状态</th>
+            <th>维修结果</th>
+            <th>维修图片</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order in orders %}
+            <tr>
+                <td>{{ order.student_no }}</td>
+                <td>{{ order.student_name }}</td>
+                <td>{{ order.dorm_building }}-{{ order.room_no }}</td>
+                <td>{{ order.category }}</td>
+                <td>{{ order.description }}</td>
+                <td><span class="status">{{ order.status }}</span></td>
+                <td>{{ order.result_note or '-' }}</td>
+                <td>
+                    {% if order.result_image %}
+                        <div class="image-actions">
+                            <a href="{{ url_for('static', filename=order.result_image) }}" target="_blank">
+                                <img src="{{ url_for('static', filename=order.result_image) }}" alt="维修结果图片" class="result-thumb">
+                            </a>
+                            <form action="{{ url_for('delete_order_image', order_id=order.id) }}" method="post" class="delete-image-form">
+                                <button type="submit" class="btn-delete-image" onclick="return confirm('确定要删除这张图片吗？');">删除</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if order.status == 'approved' %}
+                        <form action="{{ url_for('accept_order', order_id=order.id) }}" method="post">
+                            <button type="submit">接收工单</button>
+                        </form>
+                    {% elif order.status in ['accepted', 'processing'] %}
+                        <form action="{{ url_for('finish_order', order_id=order.id) }}" method="post" class="mini-form" enctype="multipart/form-data">
+                            <input type="text" name="result_note" placeholder="维修结果" required>
+                            <input type="file" name="result_image" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" title="上传维修结果图片（可选）">
+                            <button type="submit">完成维修</button>
+                        </form>
+                    {% elif order.status == 'finished' %}
+                        <span class="hint">已完成</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="9">暂无可接收工单。</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

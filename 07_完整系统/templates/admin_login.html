@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel narrow">
+    <a href="{{ url_for('index') }}" class="back-btn">&larr; 返回首页</a>
+    <h2>管理端安全登录</h2>
+    <p class="hint">管理端采用"管理工号 + 密码 + 邮箱验证码"三重校验。</p>
+
+    <form action="{{ url_for('admin_login') }}" method="post" class="form-card" id="adminLoginForm">
+        <label>
+            管理工号
+            <input type="text" name="admin_no" id="admin_no" placeholder="例如：MX001" required>
+        </label>
+
+        <label>
+            管理员邮箱
+            <input type="email" name="email" id="admin_email" placeholder="admin@example.com" required>
+        </label>
+
+        <label>
+            登录密码
+            <input type="password" name="password" placeholder="请输入密码" required>
+        </label>
+
+        <label>
+            邮箱验证码
+            <div class="inline-form">
+                <input type="text" name="code" placeholder="6位验证码" required>
+                <button type="button" id="sendCodeBtn" onclick="sendAdminCode()">发送验证码</button>
+            </div>
+        </label>
+
+        <button type="submit">进入审核后台</button>
+    </form>
+</div>
+
+<script>
+function sendAdminCode() {
+    const email = document.getElementById('admin_email').value;
+    sendCodeAjax(email, 'admin_login', 'sendCodeBtn');
+}
+</script>
+{% endblock %}

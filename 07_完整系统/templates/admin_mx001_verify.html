@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel narrow">
+    <h2>MX001 密钥验证</h2>
+    <p class="hint">您已通过了管理编号、邮箱、密码和验证码验证。作为超级管理员，请输入您的专属安全密钥以完成登录。</p>
+
+    <form action="{{ url_for('admin_mx001_verify') }}" method="post" class="form-card">
+        <label>
+            专属安全密钥
+            <input type="password" name="secret_key" placeholder="请输入您的固定密钥" required autocomplete="off">
+        </label>
+
+        <button type="submit">验证并进入管理端</button>
+    </form>
+</div>
+{% endblock %}

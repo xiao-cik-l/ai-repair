@@ -1,0 +1,14 @@
+Flask==3.0.3
+Werkzeug==3.0.3
+
+# ============================================================
+# AI 模块依赖（正式版新增）
+# ============================================================
+pymysql          # MySQL 驱动，业务系统与 AI 建单共用
+openai           # ai/service.py、ai/autoorder/ 用 OpenAI 兼容模式调 DeepSeek-V4-Pro（百炼托管）
+dashscope        # ai/common/qwen_client.py（DeepSeek-V4-Pro）、ai/rag/faq_kb.py（text-embedding-v3）用原生 SDK
+chromadb         # ai/rag 向量检索（会带 pydantic v2 / onnxruntime 等依赖）
+python-dotenv    # 可选：加载 .env，不装则环境变量需自行 export
+
+# 注意：chromadb 对 Python 版本敏感，3.13 上常缺可用 wheel。
+# 建议用 Python 3.10 建虚拟环境：python -m venv venv && venv\Scripts\pip install -r requirements.txt

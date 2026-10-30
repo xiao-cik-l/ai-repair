@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="toolbar">
+    <h2>我的报修工单</h2>
+    <div class="toolbar-actions">
+        <a class="button" href="{{ url_for('student_ai') }}">AI 报修助手</a>
+        <a class="button" href="{{ url_for('new_order') }}">提交新报修</a>
+    </div>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>学号</th>
+            <th>宿舍</th>
+            <th>类型</th>
+            <th>描述</th>
+            <th>状态</th>
+            <th>审核意见</th>
+            <th>维修结果</th>
+            <th>维修图片</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order in orders %}
+            <tr>
+                <td>{{ order.student_no }}</td>
+                <td>{{ order.dorm_building }}-{{ order.room_no }}</td>
+                <td>{{ order.category }}</td>
+                <td>{{ order.description }}</td>
+                <td><span class="status">{{ order.status }}</span></td>
+                <td>{{ order.audit_note or '-' }}</td>
+                <td>{{ order.result_note or '-' }}</td>
+                <td>
+                    {% if order.result_image %}
+                        <div class="image-actions">
+                            <a href="{{ url_for('static', filename=order.result_image) }}" target="_blank">
+                                <img src="{{ url_for('static', filename=order.result_image) }}" alt="维修结果图片" class="result-thumb">
+                            </a>
+                            {% if session.role == 'admin' or (session.role == 'worker' and order.worker_id == session.user_id) %}
+                                <form action="{{ url_for('delete_order_image', order_id=order.id) }}" method="post" class="delete-image-form">
+                                    <button type="submit" class="btn-delete-image" onclick="return confirm('确定要删除这张图片吗？');">删除</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="8">暂无报修记录。</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title or '学生公寓报修系统' }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">学生公寓报修系统</div>
+        <div class="topbar-right">
+            <nav class="nav">
+                {% if session.get('user_id') %}
+                    {% if session.get('role') == 'student' %}
+                        <a href="{{ url_for('student_dashboard') }}">报修中心</a>
+                    {% elif session.get('role') == 'worker' %}
+                        <a href="{{ url_for('worker_dashboard') }}">接单中心</a>
+                    {% elif session.get('role') == 'admin' %}
+                        <a href="{{ url_for('admin_dashboard') }}">审核后台</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('index') }}">首页</a>
+                    <a href="{{ url_for('student_login') }}">学生登录</a>
+                    <a href="{{ url_for('worker_login') }}">维修工登录</a>
+                    <a href="{{ url_for('admin_login') }}">管理端</a>
+                {% endif %}
+            </nav>
+            <div class="user-info">
+                {% if session.get('user_id') %}
+                    <span class="user-badge">
+                        {% if session.get('role') == 'student' %}
+                            学号：{{ session.get('student_no', '') }}
+                        {% elif session.get('role') == 'worker' %}
+                            工号：{{ session.get('worker_no', '') }}
+                        {% elif session.get('role') == 'admin' %}
+                            管理编号：{{ session.get('admin_no', '') }}
+                        {% endif %}
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="logout-btn">退出</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="message-box">
+                    {% for message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- 页面消息提示容器 -->
+    <div id="page-toast" style="display:none;position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:6px;color:#fff;font-size:14px;z-index:9999;max-width:300px;word-break:break-all;"></div>
+
+    <!-- AJAX 发送验证码的通用脚本 -->
+    <script>
+    // 显示页面内消息提示（自动消失）
+    function showToast(message, type) {
+        const toast = document.getElementById('page-toast');
+        toast.textContent = message;
+        toast.style.display = 'block';
+        if (type === 'error') {
+            toast.style.background = '#ef4444';
+        } else {
+            toast.style.background = '#10b981';
+        }
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
+
+    function sendCodeAjax(email, purpose, btnId) {
+        const btn = document.getElementById(btnId);
+        if (!email) {
+            showToast('请先填写邮箱！', 'error');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '发送中...';
+
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('purpose', purpose);
+
+        fetch('{{ url_for("send_code") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const messages = doc.querySelectorAll('.message-box p');
+            if (messages.length > 0) {
+                showToast(messages[messages.length - 1].textContent, 'success');
+            } else {
+                showToast('验证码已发送，请查收邮箱。', 'success');
+            }
+
+            let countdown = 60;
+            btn.textContent = countdown + '秒后重试';
+            const timer = setInterval(() => {
+                countdown--;
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    btn.disabled = false;
+                    btn.textContent = '发送验证码';
+                } else {
+                    btn.textContent = countdown + '秒后重试';
+                }
+            }, 1000);
+        })
+        .catch(error => {
+            showToast('发送失败：' + error, 'error');
+            btn.disabled = false;
+            btn.textContent = '发送验证码';
+        });
+    }
+    </script>
+</body>
+</html>

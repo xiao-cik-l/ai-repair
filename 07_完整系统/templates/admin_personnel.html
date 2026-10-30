@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel wide">
+    <a href="{{ url_for('admin_dashboard') }}" class="back-btn">&larr; 返回审核中心</a>
+    <h2>人员变动管理</h2>
+    <p class="hint">仅管理编号 MX001 可进行人员变动操作。添加/编辑/删除将同步更新数据库。</p>
+
+    <hr>
+
+    <!-- ========== 维修工管理 ========== -->
+    <h3>维修工管理</h3>
+    <table class="data-table wide">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>姓名</th>
+                <th>工号</th>
+                <th>邮箱</th>
+                <th>手机</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for worker in workers %}
+            <tr>
+                <td>{{ worker.id }}</td>
+                <td>{{ worker.name }}</td>
+                <td>{{ worker.worker_no }}</td>
+                <td>{{ worker.email }}</td>
+                <td>{{ worker.phone or '-' }}</td>
+                <td>
+                    <div class="action-group">
+                        <button type="button" class="btn-sm" onclick="toggleEdit('worker-edit-{{ worker.id }}')">编辑</button>
+                        <form action="{{ url_for('admin_delete_worker', worker_id=worker.id) }}" method="post"
+                              onsubmit="return confirm('确定删除维修工 {{ worker.name }}({{ worker.worker_no }}) 吗？')" style="display:inline;">
+                            <button type="submit" class="btn-sm danger">删除</button>
+                        </form>
+                    </div>
+                    <!-- 编辑表单（默认隐藏） -->
+                    <div id="worker-edit-{{ worker.id }}" class="edit-form" style="display:none;">
+                        <form action="{{ url_for('admin_edit_worker', worker_id=worker.id) }}" method="post" class="inline-grid">
+                            <div class="form-row">
+                                <label>姓名</label>
+                                <input type="text" name="name" value="{{ worker.name }}" placeholder="请输入姓名" required disabled class="locked-field">
+                            </div>
+                            <div class="form-row">
+                                <label>工号</label>
+                                <input type="text" name="worker_no" value="{{ worker.worker_no }}" placeholder="请输入工号" required disabled class="locked-field">
+                            </div>
+                            <div class="form-row-full">
+                                <label>邮箱</label>
+                                <div class="send-code-row">
+                                    <input type="email" name="email" id="worker-edit-email-{{ worker.id }}" value="{{ worker.email }}" placeholder="请输入邮箱" required>
+                                    <button type="button" id="btn-send-worker-edit-code-{{ worker.id }}" onclick="sendCodeAjax(document.getElementById('worker-edit-email-{{ worker.id }}').value, 'edit_worker', 'btn-send-worker-edit-code-{{ worker.id }}')">发送验证码</button>
+                                </div>
+                            </div>
+                            <div class="form-row-full">
+                                <label>邮箱验证码</label>
+                                <div class="send-code-row">
+                                    <input type="text" name="code" id="worker-edit-code-{{ worker.id }}" placeholder="必填" required>
+                                    <button type="button" class="btn-verify" onclick="verifyAndUnlock('worker-edit-{{ worker.id }}', 'edit_worker', document.getElementById('worker-edit-email-{{ worker.id }}').value, document.getElementById('worker-edit-code-{{ worker.id }}').value, this)">验证</button>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <label>新密码</label>
+                                <input type="password" name="password" placeholder="留空则不修改" disabled class="locked-field">
+                            </div>
+                            <div class="form-row">
+                                <label>手机号</label>
+                                <input type="text" name="phone" value="{{ worker.phone or '' }}" placeholder="请输入手机号" disabled class="locked-field">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" disabled class="btn-submit-locked">保存修改</button>
+                                <button type="button" class="btn-cancel" onclick="toggleEdit('worker-edit-{{ worker.id }}')">取消</button>
+                            </div>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">暂无维修工。</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <details class="add-form">
+        <summary><strong>+ 添加维修工</strong></summary>
+        <form action="{{ url_for('admin_add_worker') }}" method="post" class="inline-grid">
+            <input type="text" name="name" placeholder="姓名" required>
+            <input type="email" name="email" placeholder="邮箱" required>
+            <input type="password" name="password" placeholder="登录密码" required>
+            <input type="text" name="phone" placeholder="手机号">
+            <button type="submit">确认添加（工号自动生成）</button>
+        </form>
+    </details>
+
+    <hr>
+
+    <!-- ========== 管理员管理 ========== -->
+    <h3>管理员管理</h3>
+    <table class="data-table wide">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>姓名</th>
+                <th>管理编号</th>
+                <th>邮箱</th>
+                <th>手机</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for admin in admins %}
+            <tr>
+                <td>{{ admin.id }}</td>
+                <td>{{ admin.name }}</td>
+                <td>{{ admin.admin_no }}</td>
+                <td>{{ admin.email }}</td>
+                <td>{{ admin.phone or '-' }}</td>
+                <td>
+                    <div class="action-group">
+                        <button type="button" class="btn-sm" onclick="toggleEdit('admin-edit-{{ admin.id }}')">编辑</button>
+                        {% if admin.admin_no != 'MX001' %}
+                            <form action="{{ url_for('admin_delete_admin', admin_id=admin.id) }}" method="post"
+                                  onsubmit="return confirm('确定删除管理员 {{ admin.name }}({{ admin.admin_no }}) 吗？')" style="display:inline;">
+                                <button type="submit" class="btn-sm danger">删除</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                    <!-- 编辑表单（默认隐藏） -->
+                    <div id="admin-edit-{{ admin.id }}" class="edit-form" style="display:none;">
+                        <form action="{{ url_for('admin_edit_admin', admin_id=admin.id) }}" method="post" class="inline-grid">
+                            <div class="form-row">
+                                <label>姓名</label>
+                                <input type="text" name="name" value="{{ admin.name }}" placeholder="请输入姓名" required disabled class="locked-field">
+                            </div>
+                            {% if admin.admin_no == 'MX001' %}
+                                <div class="form-row">
+                                    <label>管理编号</label>
+                                    <input type="text" value="{{ admin.admin_no }}" disabled title="MX001 管理编号不可修改" style="background:#f3f4f6;color:#6b7280;">
+                                    <input type="hidden" name="admin_no" value="{{ admin.admin_no }}">
+                                </div>
+                            {% else %}
+                                <div class="form-row">
+                                    <label>管理编号</label>
+                                    <input type="text" name="admin_no" value="{{ admin.admin_no }}" placeholder="请输入管理编号" required disabled class="locked-field">
+                                </div>
+                            {% endif %}
+                            <div class="form-row-full">
+                                <label>邮箱</label>
+                                <div class="send-code-row">
+                                    <input type="email" name="email" id="admin-edit-email-{{ admin.id }}" value="{{ admin.email }}" placeholder="请输入邮箱" required>
+                                    <button type="button" id="btn-send-admin-edit-code-{{ admin.id }}" onclick="sendCodeAjax(document.getElementById('admin-edit-email-{{ admin.id }}').value, 'edit_admin', 'btn-send-admin-edit-code-{{ admin.id }}')">发送验证码</button>
+                                </div>
+                            </div>
+                            <div class="form-row-full">
+                                <label>邮箱验证码</label>
+                                <div class="send-code-row">
+                                    <input type="text" name="code" id="admin-edit-code-{{ admin.id }}" placeholder="必填" required>
+                                    <button type="button" class="btn-verify" onclick="verifyAndUnlock('admin-edit-{{ admin.id }}', 'edit_admin', document.getElementById('admin-edit-email-{{ admin.id }}').value, document.getElementById('admin-edit-code-{{ admin.id }}').value, this)">验证</button>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <label>新密码</label>
+                                <input type="password" name="password" placeholder="留空则不修改" disabled class="locked-field">
+                            </div>
+                            <div class="form-row">
+                                <label>手机号</label>
+                                <input type="text" name="phone" value="{{ admin.phone or '' }}" placeholder="请输入手机号" disabled class="locked-field">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" disabled class="btn-submit-locked">保存修改</button>
+                                <button type="button" class="btn-cancel" onclick="toggleEdit('admin-edit-{{ admin.id }}')">取消</button>
+                            </div>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">暂无其他管理员。</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <details class="add-form">
+        <summary><strong>+ 添加管理员</strong></summary>
+        <form action="{{ url_for('admin_add_admin') }}" method="post" class="inline-grid">
+            <input type="text" name="name" placeholder="姓名" required>
+            <input type="email" name="email" placeholder="邮箱" required>
+            <input type="password" name="password" placeholder="登录密码" required>
+            <input type="text" name="phone" placeholder="手机号">
+            <button type="submit">确认添加（管理编号自动生成）</button>
+        </form>
+    </details>
+</div>
+
+<style>
+.locked-field:disabled {
+    background-color: #f3f4f6 !important;
+    color: #6b7280 !important;
+    cursor: not-allowed;
+}
+.btn-verify {
+    white-space: nowrap;
+    padding: 0 14px;
+    height: 36px;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.btn-verify:hover { background: #2563eb; }
+.btn-verify:disabled { background: #9ca3af; cursor: not-allowed; }
+.btn-submit-locked:disabled {
+    background: #9ca3af !important;
+    cursor: not-allowed;
+}
+</style>
+
+<script>
+function toggleEdit(id) {
+    const el = document.getElementById(id);
+    if (el.style.display === 'none') {
+        el.style.display = 'block';
+    } else {
+        el.style.display = 'none';
+        // 关闭时重置锁定状态
+        resetLock(id);
+    }
+}
+
+function resetLock(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    form.querySelectorAll('.locked-field').forEach(input => {
+        input.disabled = true;
+    });
+    const submitBtn = form.querySelector('.btn-submit-locked');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+    }
+}
+
+function verifyAndUnlock(formId, purpose, email, code, btn) {
+    if (!email) {
+        showToast('请先填写邮箱！', 'error');
+        return;
+    }
+    if (!code) {
+        showToast('请先填写验证码！', 'error');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '验证中...';
+
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('purpose', purpose);
+    formData.append('code', code);
+
+    fetch('{{ url_for("verify_code_ajax") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+    .then(({ ok, data }) => {
+        if (ok && data.success) {
+            showToast(data.message, 'success');
+            // 解锁所有锁定字段（移除 disabled 后，CSS 的 :disabled 样式自动失效，恢复白色背景和正常光标）
+            const form = document.getElementById(formId);
+            form.querySelectorAll('.locked-field').forEach(input => {
+                input.disabled = false;
+            });
+            const submitBtn = form.querySelector('.btn-submit-locked');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+            }
+            btn.textContent = '已验证';
+            btn.style.background = '#10b981';
+        } else {
+            showToast(data.message || '验证失败', 'error');
+            btn.disabled = false;
+            btn.textContent = '验证';
+        }
+    })
+    .catch(error => {
+        showToast('验证请求失败：' + error, 'error');
+        btn.disabled = false;
+        btn.textContent = '验证';
+    });
+}
+</script>
+{% endblock %}

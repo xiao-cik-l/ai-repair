@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <h1>学生公寓报修系统增强版</h1>
+        <p>支持学生报修、维修工接单、管理员审核与邮箱验证码安全登录。</p>
+        <div class="button-row">
+            <a class="button" href="{{ url_for('student_register') }}">学生注册</a>
+            <a class="button secondary" href="{{ url_for('student_login') }}">学生登录</a>
+            <a class="button secondary" href="{{ url_for('worker_login') }}">维修工入口</a>
+            <a class="button secondary" href="{{ url_for('admin_login') }}">管理端入口</a>
+        </div>
+    </div>
+</section>
+
+<section class="grid-3">
+    <div class="card">
+        <h3>学生端</h3>
+        <p>邮箱验证码注册与登录，提交宿舍设施报修，查看审核、派工、维修进度。</p>
+    </div>
+    <div class="card">
+        <h3>维修工端</h3>
+        <p>工号加邮箱验证码登录，查看已审核工单，接单并填写维修完成结果。</p>
+    </div>
+    <div class="card">
+        <h3>管理端</h3>
+        <p>邮箱验证码与限时密钥双重验证，完成工单审核、退回、派工与归档。</p>
+    </div>
+</section>
+{% endblock %}

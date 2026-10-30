@@ -9,6 +9,7 @@ venv/
 # 环境变量 / 密钥（一律不入库）
 .env
 .env.*
+!.env.example
 
 # ChromaDB 本地持久化数据（可由 faq_kb.py 重新生成）
 chroma_db/
@@ -18,6 +19,11 @@ chroma_db/
 .idea/
 Thumbs.db
 desktop.ini
+
+# 演示视频与本地测试图片（体积大 / 含个人照片，不入库）
+*.mp4
+*.mov
+static/uploads/
 
 # 临时与备份文件
 *_备份.docx

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel narrow">
+    <a href="{{ url_for('index') }}" class="back-btn">&larr; 返回首页</a>
+    <h2>学生验证码登录</h2>
+
+    <form action="{{ url_for('student_login') }}" method="post" class="form-card" id="studentLoginForm">
+        <label>
+            学号
+            <input type="text" name="student_no" id="stu_no" placeholder="例如：js23150301" required>
+        </label>
+
+        <label>
+            邮箱
+            <input type="email" name="email" id="stu_email" placeholder="注册邮箱" required>
+        </label>
+
+        <label>
+            密码
+            <input type="password" name="password" required>
+        </label>
+
+        <label>
+            邮箱验证码
+            <div class="inline-form">
+                <input type="text" name="code" placeholder="6位验证码" required>
+                <button type="button" id="sendCodeBtn" onclick="sendStudentCode()">发送验证码</button>
+            </div>
+        </label>
+
+        <button type="submit">登录学生端</button>
+    </form>
+</div>
+
+<script>
+function sendStudentCode() {
+    const email = document.getElementById('stu_email').value;
+    sendCodeAjax(email, 'student_login', 'sendCodeBtn');
+}
+</script>
+{% endblock %}

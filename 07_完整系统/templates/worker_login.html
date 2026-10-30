@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel narrow">
+    <a href="{{ url_for('index') }}" class="back-btn">&larr; 返回首页</a>
+    <h2>维修工工号登录</h2>
+
+    <form action="{{ url_for('worker_login') }}" method="post" class="form-card" id="workerLoginForm">
+        <label>
+            工号
+            <input type="text" name="worker_no" id="worker_no" placeholder="例如：WX001" required>
+        </label>
+
+        <label>
+            绑定邮箱
+            <input type="email" name="email" id="worker_email" placeholder="worker01@example.com" required>
+        </label>
+
+        <label>
+            登录密码
+            <input type="password" name="password" placeholder="请输入密码" required>
+        </label>
+
+        <label>
+            邮箱验证码
+            <div class="inline-form">
+                <input type="text" name="code" placeholder="6位验证码" required>
+                <button type="button" id="sendCodeBtn" onclick="sendWorkerCode()">发送验证码</button>
+            </div>
+        </label>
+
+        <button type="submit">进入接单中心</button>
+    </form>
+</div>
+
+<script>
+function sendWorkerCode() {
+    const email = document.getElementById('worker_email').value;
+    sendCodeAjax(email, 'worker_login', 'sendCodeBtn');
+}
+</script>
+{% endblock %}

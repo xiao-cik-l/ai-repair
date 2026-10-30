@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="panel narrow">
+    <a href="javascript:history.back()" class="back-btn">&larr; 返回上一页</a>
+    <h2>提交宿舍报修</h2>
+
+    <form action="{{ url_for('new_order') }}" method="post" class="form-card">
+        <label>
+            宿舍楼
+            <input type="text" name="dorm_building" placeholder="例如：3号楼" required>
+            <small class="field-tip">填 3 / 3栋 / 3 号楼 都可以，保存时自动规范为「3号楼」</small>
+        </label>
+
+        <label>
+            宿舍号
+            <input type="text" name="room_no" placeholder="例如：502宿舍" required>
+            <small class="field-tip">只填 502 也可以，保存时自动补全为「502宿舍」</small>
+        </label>
+
+        <label>
+            报修类型
+            <select name="category" required>
+                <option value="水电维修">水电维修</option>
+                <option value="门窗维修">门窗维修</option>
+                <option value="家具维修">家具维修</option>
+                <option value="网络故障">网络故障</option>
+                <option value="其他问题">其他问题</option>
+            </select>
+        </label>
+
+        <label>
+            问题描述
+            <textarea name="description" rows="5" placeholder="请详细描述损坏位置、现象和紧急程度" required></textarea>
+        </label>
+
+        <button type="submit">提交工单</button>
+    </form>
+</div>
+
+<style>
+  .field-tip { display: block; margin-top: 4px; font-size: 12px; color: #888; font-weight: normal; }
+</style>
+{% endblock %}
