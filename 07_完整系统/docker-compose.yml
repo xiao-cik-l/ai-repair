@@ -1,0 +1,81 @@
+# ============================================================
+# 一条命令起整套环境：Flask 应用 + MySQL
+#   启动：docker compose up -d --build
+#   看日志：docker compose logs -f web
+#   停掉：docker compose down
+#   连数据一起清掉重建：docker compose down -v
+# ============================================================
+name: dorm-repair
+
+services:
+  # ---------------- 数据库 ----------------
+  db:
+    image: mysql:8.0
+    container_name: dorm-mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-name-resolve
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dorm_root_pwd}
+      MYSQL_DATABASE: ${MYSQL_DB:-cjl_505}
+      TZ: Asia/Shanghai
+    volumes:
+      # 数据卷：容器删了数据还在，否则每次重启工单表都会变回空的
+      - mysql_data:/var/lib/mysql
+      # 低内存参数，8GB 机器必须挂
+      - ./docker/mysql-low-mem.cnf:/etc/mysql/conf.d/low-mem.cnf:ro
+      # 只在数据卷为空时执行一次，自动建出五张表
+      - ./schema_mysql.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    mem_limit: 480m
+    networks:
+      - dorm
+
+  # ---------------- 应用 ----------------
+  web:
+    build:
+      context: .
+    image: dorm-repair-web:latest
+    container_name: dorm-web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # 关键：容器之间用服务名互访，这里必须是 db 而不是 localhost
+      MYSQL_HOST: db
+      MYSQL_PORT: "3306"
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dorm_root_pwd}
+      MYSQL_DB: ${MYSQL_DB:-cjl_505}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      DEMO_LOGIN_CODE: ${DEMO_LOGIN_CODE:-0}
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:-change-me-before-deploy}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-v4-pro-0813}
+      LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-qwen-turbo}
+      TZ: Asia/Shanghai
+    ports:
+      - "${WEB_PORT:-5000}:5000"
+    volumes:
+      # 维修结果图片要活过容器重建
+      - uploads:/app/static/uploads
+    mem_limit: 620m
+    networks:
+      - dorm
+
+volumes:
+  mysql_data:
+  uploads:
+
+networks:
+  dorm:
+    driver: bridge

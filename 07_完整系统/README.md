@@ -277,6 +277,11 @@ DeepSeek-V4 默认开启思考模式，对分类这类任务纯属浪费，而�
 ├── schema_mysql.sql    建表脚本
 ├── requirements.txt    依赖清单
 ├── .env.example        环境变量模板，复制成 .env 后填值
+├── Dockerfile          应用镜像
+├── docker-compose.yml  应用 + 数据库一起编排
+├── docker/             容器启动脚本与 MySQL 低内存参数
+├── .env.docker.example 容器部署的环境变量模板
+├── DOCKER.md           容器化部署与排错说明
 ├── static/             样式与上传的维修照片
 ├── templates/          页面模板
 ├── docs/screenshots/   本文档用到的截图
@@ -336,3 +341,27 @@ FLASK_SECRET_KEY
 ```
 
 前三行是必填或视情况必填：数据库不一致才填，登录必须配邮箱，AI 功能必须配 Key。第四行是模型微调用的可选覆盖项。第五行是会话签名密钥，本地演示用默认值没关系，公开部署必须换。
+
+另有两个为容器和演示准备的可选项，本地正常运行不需要动：
+
+```
+DEMO_EMAIL        演示账号的邮箱，默认取 SMTP_USER（登录时填的邮箱必须与它一致）
+DEMO_LOGIN_CODE   设为 1 时，没有邮箱授权码也能登录：验证码打印到日志而不发信
+```
+
+---
+
+## 八、用 Docker 跑（可选）
+
+上面第三节是「装 Python、装 MySQL、配环境变量」的手动流程。容器化把这三件事压成一条命令，换台电脑不用重装环境。
+
+```
+cp .env.docker.example .env      # 填数据库密码、邮箱、大模型 Key
+docker compose up -d --build
+```
+
+起来之后打开 http://localhost:5000 。数据库建表、演示账号初始化、向量库检查、等待数据库就绪这几步都在容器启动时自动完成，不需要手动执行 schema 脚本。
+
+两个文件看一次就够：Dockerfile 定义应用镜像怎么构建，docker-compose.yml 定义启动哪些服务、怎么连、内存给多少。数据库数据放在 named volume 里，容器删了工单还在；要彻底重来就用 docker compose down -v。
+
+完整步骤、8GB 内存机器的配额设置、以及五类常见报错的排查，见同目录的 DOCKER.md。这台机器内存占用偏满，装 Docker Desktop 之前务必先按 DOCKER.md 第一节写 .wslconfig，否则一启动容器就会内存不足。

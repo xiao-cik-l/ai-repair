@@ -1,0 +1,26 @@
+# 不要的：演示视频 112MB，进构建上下文会让每次 build 都白传一遍
+介绍视频.mp4
+*.mp4
+*.mov
+
+# 不要的：本地备份与编译缓存
+_backup_20261025/
+__pycache__/
+*.py[cod]
+*.log
+
+# 不要的：虚拟环境
+.venv/
+venv/
+env/
+
+# 不要的：版本控制与私密文件
+.git/
+.gitignore
+.env
+.env.docker
+
+# 说明文档留在上下文里没有害处，但省掉能少几 KB
+DOCKER.md
+
+# 注意：ai/chroma_db 必须保留（约 800KB），镜像要知道去哪找向量库

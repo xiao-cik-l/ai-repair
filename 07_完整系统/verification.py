@@ -17,6 +17,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import (
     CODE_EXPIRE_MINUTES,
+    DEMO_LOGIN_CODE,
     QQ_SMTP_HOST,
     QQ_SMTP_PASSWORD,
     QQ_SMTP_PORT,
@@ -35,6 +36,17 @@ def send_email_code(email: str, code: str, purpose: str) -> None:
     """【通过 QQ 邮箱发送验证码】"""
     subject = "学生公寓报修系统验证码"
     body = f"您好，您正在进行【{purpose}】操作，本次验证码为：{code}，{CODE_EXPIRE_MINUTES}分钟内有效。请勿泄露给他人。"
+
+    # 没配授权码时不硬发信：容器演示没有邮箱凭据时，把验证码打到日志里，
+    # 用 docker compose logs -f web 就能看到。默认 DEMO_LOGIN_CODE=0，行为不变。
+    if not QQ_SMTP_PASSWORD:
+        if DEMO_LOGIN_CODE:
+            print(f"[演示模式] 未配置 SMTP 授权码，验证码不真实发信：{email} -> {code}")
+            return
+        raise RuntimeError(
+            "未配置 SMTP_PASSWORD，无法发送验证码。"
+            "如需临时演示，设置 DEMO_LOGIN_CODE=1 让验证码打印到日志。"
+        )
 
     msg = MIMEText(body, "plain", "utf-8")
     msg["From"] = QQ_SMTP_SENDER

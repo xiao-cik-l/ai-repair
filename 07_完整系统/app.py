@@ -19,6 +19,8 @@
   - ai/            AI 能力包（分类 / RAG / 自动建单 / 三合一入口）
 """
 
+import os
+
 from flask import Flask
 
 from config import (
@@ -47,4 +49,10 @@ register_routes_ai(app)
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True, host="127.0.0.1", port=5000)
+    # 容器里必须监听 0.0.0.0，本地默认仍是 127.0.0.1，行为不变。
+    # debug 也交给环境变量：容器里关掉，否则 reloader 会起两个进程。
+    app.run(
+        debug=os.getenv("FLASK_DEBUG", "1") == "1",
+        host=os.getenv("FLASK_RUN_HOST", "127.0.0.1"),
+        port=int(os.getenv("FLASK_RUN_PORT", "5000")),
+    )

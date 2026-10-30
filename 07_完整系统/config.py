@@ -52,6 +52,10 @@ QQ_SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 DEMO_EMAIL = os.getenv("SMTP_USER", "demo@example.com")
 QQ_SMTP_SENDER = os.getenv("SMTP_SENDER", QQ_SMTP_USER)
 
+# 没有邮箱授权码时的兜底：设为 1 则验证码打印到日志、不真实发信。
+# 只用于本地和容器演示，正式环境必须保持 0。
+DEMO_LOGIN_CODE = os.getenv("DEMO_LOGIN_CODE", "0").lower() in ("1", "true", "yes")
+
 # ============================================================
 # 大模型（LLM）配置 —— 2026-10-24 由通义千问切换为 DeepSeek-V4-Pro
 # ============================================================

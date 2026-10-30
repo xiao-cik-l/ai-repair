@@ -1,0 +1,18 @@
+; ============================================================
+; MySQL 低内存配置（8GB 内存的机器跑 Docker 必须压）
+; 默认安装下 MySQL 8 启动就要 400~500MB，buffer pool 默认 128M。
+; 本项目工单表只有几十行，64M buffer pool 完全够用。
+; ============================================================
+[mysqld]
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+
+# 缓存池压到 64M（默认 128M）
+innodb_buffer_pool_size = 64M
+# 日志文件调小，减少磁盘占用
+innodb_log_file_size = 32M
+# performance_schema 开启会多占 100MB 以上，演示环境直接关掉
+performance_schema = OFF
+# 跳过 DNS 反解，容器网络里能少一次超时
+skip-name-resolve
+max_connections = 50

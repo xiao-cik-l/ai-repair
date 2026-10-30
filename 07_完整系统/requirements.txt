@@ -9,6 +9,8 @@ openai           # ai/service.py、ai/autoorder/ 用 OpenAI 兼容模式调 Deep
 dashscope        # ai/common/qwen_client.py（DeepSeek-V4-Pro）、ai/rag/faq_kb.py（text-embedding-v3）用原生 SDK
 chromadb         # ai/rag 向量检索（会带 pydantic v2 / onnxruntime 等依赖）
 python-dotenv    # 可选：加载 .env，不装则环境变量需自行 export
+cryptography     # pymysql 连 MySQL 8 的 caching_sha2_password 认证时需要，缺了会报错
+gunicorn==22.0.0 # 容器里的 WSGI 服务器（Windows 本地跑 app.py 用不到）
 
 # 注意：chromadb 对 Python 版本敏感，3.13 上常缺可用 wheel。
 # 建议用 Python 3.10 建虚拟环境：python -m venv venv && venv\Scripts\pip install -r requirements.txt
